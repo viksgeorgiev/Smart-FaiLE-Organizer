@@ -10,7 +10,7 @@
         "projectUniqueName": "D:\\Programming without\\AI-Assisted Development\\EXAM\\Smart FaiLE Organizer\\SmartFileOrganizer\\SmartFileOrganizer.csproj",
         "projectName": "SmartFileOrganizer",
         "projectPath": "D:\\Programming without\\AI-Assisted Development\\EXAM\\Smart FaiLE Organizer\\SmartFileOrganizer\\SmartFileOrganizer.csproj",
-        "packagesPath": "C:\\Users\\Abaddon\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\Abaddon\\AppData\\Local\\Temp\\cursor-sandbox-cache\\22d99a45fff0903f378b63e30e03dff0\\nuget",
         "outputPath": "D:\\Programming without\\AI-Assisted Development\\EXAM\\Smart FaiLE Organizer\\SmartFileOrganizer\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
@@ -49,6 +49,12 @@
       "frameworks": {
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "CommunityToolkit.Mvvm": {
+              "target": "Package",
+              "version": "[8.4.2, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -82,7 +88,7 @@
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             },
-            "Microsoft.WindowsDesktop.App.WPF": {
+            "Microsoft.WindowsDesktop.App": {
               "privateAssets": "none"
             }
           },

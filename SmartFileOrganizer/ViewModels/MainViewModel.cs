@@ -1,51 +1,73 @@
 using System.Collections.ObjectModel;
-using System.Windows.Input;
-using SmartFileOrganizer.Commands;
+using System.IO;
+using System.Windows.Forms;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SmartFileOrganizer.Models;
 
 namespace SmartFileOrganizer.ViewModels;
 
-public class MainViewModel : ViewModelBase
+public partial class MainViewModel : ObservableObject
 {
-    private string _selectedFolderPath = string.Empty;
+    [ObservableProperty]
+    private string _selectedFolder = string.Empty;
+
+    [ObservableProperty]
     private string _statusMessage = "Select a folder to begin.";
 
     public MainViewModel()
     {
-        Rules = new ObservableCollection<OrganizationRule>();
-        PreviewItems = new ObservableCollection<PreviewItem>();
-        History = new ObservableCollection<HistoryEntry>();
-
-        SelectFolderCommand = new RelayCommand(SelectFolder);
-        OrganizeCommand = new RelayCommand(OrganizeFiles);
+        SelectedFolderCommand = new RelayCommand(OnSelectedFolder);
     }
 
-    public string SelectedFolderPath
+    public ObservableCollection<OrganizationRule> Rules { get; } = new();
+    public ObservableCollection<PreviewItem> Files { get; } = new();
+    public ObservableCollection<HistoryEntry> History { get; } = new();
+
+    public IRelayCommand SelectedFolderCommand { get; }
+
+    [RelayCommand]
+    private void ScanFolder()
     {
-        get => _selectedFolderPath;
-        set => SetProperty(ref _selectedFolderPath, value);
+        // TODO: implement folder scanning
     }
 
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        set => SetProperty(ref _statusMessage, value);
-    }
-
-    public ObservableCollection<OrganizationRule> Rules { get; }
-    public ObservableCollection<PreviewItem> PreviewItems { get; }
-    public ObservableCollection<HistoryEntry> History { get; }
-
-    public ICommand SelectFolderCommand { get; }
-    public ICommand OrganizeCommand { get; }
-
-    private void SelectFolder()
-    {
-        // TODO: implement folder selection
-    }
-
+    [RelayCommand]
     private void OrganizeFiles()
     {
         // TODO: implement file organization
+    }
+
+    [RelayCommand]
+    private void AddRule()
+    {
+        // TODO: implement add rule
+    }
+
+    [RelayCommand]
+    private void DeleteRule()
+    {
+        // TODO: implement delete rule
+    }
+
+    private void OnSelectedFolder()
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Select a folder to organize",
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton = true
+        };
+
+        if (!string.IsNullOrWhiteSpace(SelectedFolder) && Directory.Exists(SelectedFolder))
+        {
+            dialog.SelectedPath = SelectedFolder;
+        }
+
+        if (dialog.ShowDialog() == DialogResult.OK)
+        {
+            SelectedFolder = dialog.SelectedPath;
+            StatusMessage = "Folder selected.";
+        }
     }
 }
