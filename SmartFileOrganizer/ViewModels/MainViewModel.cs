@@ -10,11 +10,15 @@ namespace SmartFileOrganizer.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly JsonStorageService _jsonStorageService;
     private readonly RuleService _ruleService;
     private readonly FileScannerService _fileScannerService;
+    private readonly FileOrganizerService _fileOrganizerService;
+    private readonly LoggingService _loggingService;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ScanFolderCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OrganizeFilesCommand))]
     private string _selectedFolder = string.Empty;
 
     [ObservableProperty]
@@ -26,10 +30,13 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        _ruleService = new RuleService(new JsonStorageService());
+        _jsonStorageService = new JsonStorageService();
+        _ruleService = new RuleService(_jsonStorageService);
         _fileScannerService = new FileScannerService();
+        _fileOrganizerService = new FileOrganizerService();
+        _loggingService = new LoggingService(_jsonStorageService);
         SelectedFolderCommand = new RelayCommand(OnSelectedFolder);
-        _ = LoadRulesAsync();
+        _ = InitializeAsync();
     }
 
     public ObservableCollection<OrganizationRule> Rules { get; } = new();
@@ -72,16 +79,67 @@ public partial class MainViewModel : ObservableObject
 
         var matchedCount = Files.Count(file => file.Status == "Ready");
         StatusMessage = $"Found {Files.Count} file(s). {matchedCount} matched by rules.";
+        OrganizeFilesCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanScanFolder() =>
         !string.IsNullOrWhiteSpace(SelectedFolder) && Directory.Exists(SelectedFolder);
 
-    [RelayCommand]
-    private void OrganizeFiles()
+    [RelayCommand(CanExecute = nameof(CanOrganizeFiles))]
+    private async Task OrganizeFiles()
     {
-        // TODO: implement file organization
+        var previewFiles = Files.Where(file => file.Status == "Ready").ToList();
+        if (previewFiles.Count == 0)
+        {
+            StatusMessage = "No files ready to organize. Scan a folder first.";
+            return;
+        }
+
+        StatusMessage = "Organizing files...";
+
+        var fileItems = previewFiles.Select(preview => new FileItem
+        {
+            Name = preview.FileName,
+            FullPath = preview.SourcePath,
+            Extension = Path.GetExtension(preview.SourcePath).ToLowerInvariant()
+        }).ToList();
+
+        var results = await Task.Run(() =>
+            _fileOrganizerService.Organize(fileItems, Rules.ToList(), SelectedFolder));
+
+        await _loggingService.LogMovesAsync(fileItems, results);
+
+        for (var i = 0; i < results.Count; i++)
+        {
+            var result = results[i];
+            var preview = previewFiles[i];
+
+            History.Insert(0, new HistoryEntry
+            {
+                Timestamp = DateTime.Now,
+                SourcePath = result.SourcePath,
+                DestinationPath = result.DestinationPath,
+                Status = result.Success ? "Success" : "Failed",
+                Message = result.Message
+            });
+
+            preview.Status = result.Success ? "Moved" : "Failed";
+        }
+
+        var successCount = results.Count(result => result.Success);
+        StatusMessage = $"Organizing complete. {successCount} of {results.Count} file(s) moved successfully.";
+
+        System.Windows.MessageBox.Show(
+            $"Organizing complete.\n{successCount} of {results.Count} file(s) moved successfully.",
+            "Smart File Organizer",
+            System.Windows.MessageBoxButton.OK,
+            System.Windows.MessageBoxImage.Information);
+
+        OrganizeFilesCommand.NotifyCanExecuteChanged();
     }
+
+    private bool CanOrganizeFiles() =>
+        CanScanFolder() && Files.Any(file => file.Status == "Ready");
 
     [RelayCommand]
     private async Task AddRule()
@@ -156,6 +214,42 @@ public partial class MainViewModel : ObservableObject
     }
 
     private bool CanDeleteRule() => SelectedRule is not null;
+
+    private async Task InitializeAsync()
+    {
+        await LoadRulesAsync();
+        await LoadHistoryAsync();
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        try
+        {
+            await _loggingService.LoadAsync();
+
+            History.Clear();
+            foreach (var entry in _loggingService.Entries.OrderByDescending(entry => entry.Timestamp))
+            {
+                History.Add(ToHistoryEntry(entry));
+            }
+        }
+        catch (Exception)
+        {
+            StatusMessage = "Could not load history.";
+        }
+    }
+
+    private static HistoryEntry ToHistoryEntry(LogEntry entry)
+    {
+        return new HistoryEntry
+        {
+            Timestamp = entry.Timestamp,
+            SourcePath = entry.SourcePath,
+            DestinationPath = entry.DestinationPath,
+            Status = entry.Success ? "Success" : "Failed",
+            Message = entry.Success ? "File moved successfully." : "Move failed."
+        };
+    }
 
     private async Task LoadRulesAsync()
     {
