@@ -5,7 +5,7 @@ namespace SmartFileOrganizer.Services;
 
 public class FileScannerService
 {
-    public List<FileItem> Scan(string folderPath)
+    public List<FileItem> Scan(string? folderPath)
     {
         if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
         {
@@ -19,6 +19,11 @@ public class FileScannerService
 
     private static void ScanDirectory(string directoryPath, List<FileItem> files)
     {
+        if (string.IsNullOrWhiteSpace(directoryPath) || files is null)
+        {
+            return;
+        }
+
         foreach (var filePath in EnumerateFilesSafely(directoryPath))
         {
             TryAddFile(filePath, files);
@@ -70,8 +75,13 @@ public class FileScannerService
         }
     }
 
-    private static void TryAddFile(string filePath, List<FileItem> files)
+    private static void TryAddFile(string? filePath, List<FileItem> files)
     {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
         try
         {
             var info = new FileInfo(filePath);

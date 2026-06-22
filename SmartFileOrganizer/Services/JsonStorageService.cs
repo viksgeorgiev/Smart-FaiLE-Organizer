@@ -10,9 +10,9 @@ public class JsonStorageService
         WriteIndented = true
     };
 
-    public async Task<List<T>> LoadAsync<T>(string filePath)
+    public async Task<List<T>> LoadAsync<T>(string? filePath)
     {
-        if (!File.Exists(filePath))
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
         {
             return [];
         }
@@ -27,17 +27,46 @@ public class JsonStorageService
         {
             return [];
         }
+        catch (IOException)
+        {
+            return [];
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return [];
+        }
     }
 
-    public async Task SaveAsync<T>(string filePath, IEnumerable<T> items)
+    public async Task SaveAsync<T>(string? filePath, IEnumerable<T>? items)
     {
-        var directory = Path.GetDirectoryName(filePath);
-        if (!string.IsNullOrEmpty(directory))
+        if (string.IsNullOrWhiteSpace(filePath))
         {
-            Directory.CreateDirectory(directory);
+            throw new ArgumentException("File path cannot be empty.", nameof(filePath));
         }
 
-        await using var stream = File.Create(filePath);
-        await JsonSerializer.SerializeAsync(stream, items, Options);
+        if (items is null)
+        {
+            throw new ArgumentNullException(nameof(items));
+        }
+
+        try
+        {
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            await using var stream = File.Create(filePath);
+            await JsonSerializer.SerializeAsync(stream, items, Options);
+        }
+        catch (IOException ex)
+        {
+            throw new IOException("Could not save data to disk.", ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new UnauthorizedAccessException("Could not save data because access was denied.", ex);
+        }
     }
 }

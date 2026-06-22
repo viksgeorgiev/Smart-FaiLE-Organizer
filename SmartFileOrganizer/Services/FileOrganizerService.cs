@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using SmartFileOrganizer.Models;
 
 namespace SmartFileOrganizer.Services;
@@ -6,20 +7,30 @@ namespace SmartFileOrganizer.Services;
 public class FileOrganizerService
 {
     public List<OrganizationResult> Organize(
-        IReadOnlyList<FileItem> files,
-        IReadOnlyList<OrganizationRule> rules,
-        string rootFolder)
+        IReadOnlyList<FileItem>? files,
+        IReadOnlyList<OrganizationRule>? rules,
+        string? rootFolder)
     {
-        if (files.Count == 0)
+        if (files is null || files.Count == 0)
         {
             return [];
+        }
+
+        if (rules is null)
+        {
+            return files.Select(file => new OrganizationResult
+            {
+                SourcePath = file.FullPath ?? string.Empty,
+                Success = false,
+                Message = "No organization rules are available."
+            }).ToList();
         }
 
         if (string.IsNullOrWhiteSpace(rootFolder) || !Directory.Exists(rootFolder))
         {
             return files.Select(file => new OrganizationResult
             {
-                SourcePath = file.FullPath,
+                SourcePath = file.FullPath ?? string.Empty,
                 Success = false,
                 Message = "Root folder is invalid."
             }).ToList();
@@ -33,8 +44,27 @@ public class FileOrganizerService
         IReadOnlyList<OrganizationRule> rules,
         string rootFolder)
     {
+        if (file is null || string.IsNullOrWhiteSpace(file.FullPath))
+        {
+            return new OrganizationResult
+            {
+                Success = false,
+                Message = "Source file path is missing."
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(file.Name))
+        {
+            return new OrganizationResult
+            {
+                SourcePath = file.FullPath,
+                Success = false,
+                Message = "Source file name is missing."
+            };
+        }
+
         var rule = FindMatchingRule(file.Extension, rules);
-        if (rule is null)
+        if (rule is null || string.IsNullOrWhiteSpace(rule.DestinationFolder))
         {
             return new OrganizationResult
             {
@@ -93,17 +123,17 @@ public class FileOrganizerService
                 Message = "File moved successfully."
             };
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
-            return CreateFailureResult(file.FullPath, destinationPath, ex.Message);
+            return CreateFailureResult(file.FullPath, destinationPath, "Access denied while moving the file.");
         }
-        catch (IOException ex)
+        catch (IOException)
         {
-            return CreateFailureResult(file.FullPath, destinationPath, ex.Message);
+            return CreateFailureResult(file.FullPath, destinationPath, "The file could not be moved. It may be in use.");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return CreateFailureResult(file.FullPath, destinationPath, ex.Message);
+            return CreateFailureResult(file.FullPath, destinationPath, "An unexpected error occurred while moving the file.");
         }
     }
 
@@ -122,9 +152,14 @@ public class FileOrganizerService
     }
 
     private static OrganizationRule? FindMatchingRule(
-        string extension,
+        string? extension,
         IReadOnlyList<OrganizationRule> rules)
     {
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return null;
+        }
+
         var normalizedExtension = NormalizeExtension(extension);
         return rules.FirstOrDefault(rule => NormalizeExtension(rule.Extension) == normalizedExtension);
     }

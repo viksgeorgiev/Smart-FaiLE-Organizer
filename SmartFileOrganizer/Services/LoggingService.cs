@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using SmartFileOrganizer.Data;
 using SmartFileOrganizer.Models;
 
@@ -11,7 +12,7 @@ public class LoggingService
 
     public LoggingService(JsonStorageService storage)
     {
-        _storage = storage;
+        _storage = storage ?? throw new ArgumentNullException(nameof(storage));
     }
 
     public IReadOnlyList<LogEntry> Entries => _entries;
@@ -25,11 +26,21 @@ public class LoggingService
         _entries.AddRange(entries);
     }
 
-    public LogEntry CreateLogEntry(OrganizationResult result, string fileName)
+    public LogEntry CreateLogEntry(OrganizationResult? result, string? fileName)
     {
+        if (result is null)
+        {
+            return new LogEntry
+            {
+                FileName = fileName ?? string.Empty,
+                Timestamp = DateTime.Now,
+                Success = false
+            };
+        }
+
         return new LogEntry
         {
-            FileName = fileName,
+            FileName = fileName ?? string.Empty,
             SourcePath = result.SourcePath,
             DestinationPath = result.DestinationPath,
             Timestamp = DateTime.Now,
@@ -45,11 +56,16 @@ public class LoggingService
         return entry;
     }
 
-    public async Task LogMovesAsync(IReadOnlyList<FileItem> files, IReadOnlyList<OrganizationResult> results)
+    public async Task LogMovesAsync(IReadOnlyList<FileItem>? files, IReadOnlyList<OrganizationResult>? results)
     {
+        if (results is null || results.Count == 0)
+        {
+            return;
+        }
+
         for (var i = 0; i < results.Count; i++)
         {
-            var fileName = i < files.Count
+            var fileName = files is not null && i < files.Count
                 ? files[i].Name
                 : Path.GetFileName(results[i].SourcePath);
 

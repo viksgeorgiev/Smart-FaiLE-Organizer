@@ -9,17 +9,28 @@ public class RuleService
 
     public RuleService(JsonStorageService storage)
     {
-        _storage = storage;
+        _storage = storage ?? throw new ArgumentNullException(nameof(storage));
     }
 
     public async Task<List<OrganizationRule>> LoadRulesAsync()
     {
         AppDataPaths.EnsureAppFolderExists();
-        return await _storage.LoadAsync<OrganizationRule>(AppDataPaths.RulesFilePath);
+        var rules = await _storage.LoadAsync<OrganizationRule>(AppDataPaths.RulesFilePath);
+
+        return rules
+            .Where(rule => rule is not null &&
+                           !string.IsNullOrWhiteSpace(rule.Extension) &&
+                           !string.IsNullOrWhiteSpace(rule.DestinationFolder))
+            .ToList();
     }
 
-    public async Task SaveRulesAsync(IEnumerable<OrganizationRule> rules)
+    public async Task SaveRulesAsync(IEnumerable<OrganizationRule>? rules)
     {
+        if (rules is null)
+        {
+            throw new ArgumentNullException(nameof(rules));
+        }
+
         AppDataPaths.EnsureAppFolderExists();
         await _storage.SaveAsync(AppDataPaths.RulesFilePath, rules);
     }

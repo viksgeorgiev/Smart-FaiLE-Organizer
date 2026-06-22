@@ -51,35 +51,49 @@ public partial class MainViewModel : ObservableObject
         if (!CanScanFolder())
         {
             StatusMessage = "Select a valid folder first.";
+            ShowWarning("Please select a valid folder before scanning.");
             return;
         }
 
-        StatusMessage = "Scanning folder...";
-
-        var scannedFiles = await Task.Run(() => _fileScannerService.Scan(SelectedFolder));
-
-        Files.Clear();
-
-        foreach (var file in scannedFiles)
+        try
         {
-            var rule = FindMatchingRule(file.Extension);
-            var destinationFolder = rule?.DestinationFolder ?? string.Empty;
+            StatusMessage = "Scanning folder...";
 
-            Files.Add(new PreviewItem
+            var scannedFiles = await Task.Run(() => _fileScannerService.Scan(SelectedFolder));
+
+            Files.Clear();
+
+            foreach (var file in scannedFiles)
             {
-                FileName = file.Name,
-                SourcePath = file.FullPath,
-                DestinationFolder = destinationFolder,
-                DestinationPath = rule is not null
-                    ? Path.Combine(SelectedFolder, destinationFolder, file.Name)
-                    : string.Empty,
-                Status = rule is not null ? "Ready" : "No Rule"
-            });
-        }
+                if (string.IsNullOrWhiteSpace(file.FullPath))
+                {
+                    continue;
+                }
 
-        var matchedCount = Files.Count(file => file.Status == "Ready");
-        StatusMessage = $"Found {Files.Count} file(s). {matchedCount} matched by rules.";
-        OrganizeFilesCommand.NotifyCanExecuteChanged();
+                var rule = FindMatchingRule(file.Extension);
+                var destinationFolder = rule?.DestinationFolder ?? string.Empty;
+
+                Files.Add(new PreviewItem
+                {
+                    FileName = file.Name,
+                    SourcePath = file.FullPath,
+                    DestinationFolder = destinationFolder,
+                    DestinationPath = rule is not null
+                        ? Path.Combine(SelectedFolder, destinationFolder, file.Name)
+                        : string.Empty,
+                    Status = rule is not null ? "Ready" : "No Rule"
+                });
+            }
+
+            var matchedCount = Files.Count(file => file.Status == "Ready");
+            StatusMessage = $"Found {Files.Count} file(s). {matchedCount} matched by rules.";
+            OrganizeFilesCommand.NotifyCanExecuteChanged();
+        }
+        catch (Exception)
+        {
+            StatusMessage = "Could not scan this folder. Please check permissions.";
+            ShowWarning("Could not scan this folder. Please check permissions and try again.");
+        }
     }
 
     private bool CanScanFolder() =>
@@ -88,55 +102,74 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanOrganizeFiles))]
     private async Task OrganizeFiles()
     {
+        if (!CanScanFolder())
+        {
+            StatusMessage = "Select a valid folder first.";
+            ShowWarning("Please select a valid folder before organizing files.");
+            return;
+        }
+
         var previewFiles = Files.Where(file => file.Status == "Ready").ToList();
         if (previewFiles.Count == 0)
         {
             StatusMessage = "No files ready to organize. Scan a folder first.";
+            ShowWarning("No files are ready to organize. Scan a folder and add matching rules first.");
             return;
         }
 
-        StatusMessage = "Organizing files...";
-
-        var fileItems = previewFiles.Select(preview => new FileItem
+        try
         {
-            Name = preview.FileName,
-            FullPath = preview.SourcePath,
-            Extension = Path.GetExtension(preview.SourcePath).ToLowerInvariant()
-        }).ToList();
+            StatusMessage = "Organizing files...";
 
-        var results = await Task.Run(() =>
-            _fileOrganizerService.Organize(fileItems, Rules.ToList(), SelectedFolder));
+            var fileItems = previewFiles
+                .Where(preview => !string.IsNullOrWhiteSpace(preview.SourcePath))
+                .Select(preview => new FileItem
+                {
+                    Name = preview.FileName,
+                    FullPath = preview.SourcePath,
+                    Extension = Path.GetExtension(preview.SourcePath).ToLowerInvariant()
+                })
+                .ToList();
 
-        await _loggingService.LogMovesAsync(fileItems, results);
+            var results = await Task.Run(() =>
+                _fileOrganizerService.Organize(fileItems, Rules.ToList(), SelectedFolder));
 
-        for (var i = 0; i < results.Count; i++)
-        {
-            var result = results[i];
-            var preview = previewFiles[i];
+            await _loggingService.LogMovesAsync(fileItems, results);
 
-            History.Insert(0, new HistoryEntry
+            for (var i = 0; i < results.Count; i++)
             {
-                Timestamp = DateTime.Now,
-                SourcePath = result.SourcePath,
-                DestinationPath = result.DestinationPath,
-                Status = result.Success ? "Success" : "Failed",
-                Message = result.Message
-            });
+                var result = results[i];
+                var preview = previewFiles[i];
 
-            preview.Status = result.Success ? "Moved" : "Failed";
+                History.Insert(0, new HistoryEntry
+                {
+                    Timestamp = DateTime.Now,
+                    SourcePath = result.SourcePath,
+                    DestinationPath = result.DestinationPath,
+                    Status = result.Success ? "Success" : "Failed",
+                    Message = result.Message
+                });
+
+                preview.Status = result.Success ? "Moved" : "Failed";
+            }
+
+            var successCount = results.Count(result => result.Success);
+            StatusMessage = $"Organizing complete. {successCount} of {results.Count} file(s) moved successfully.";
+
+            System.Windows.MessageBox.Show(
+                $"Organizing complete.\n{successCount} of {results.Count} file(s) moved successfully.",
+                "Smart File Organizer",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+
+            OrganizeFilesCommand.NotifyCanExecuteChanged();
+            ClearHistoryCommand.NotifyCanExecuteChanged();
         }
-
-        var successCount = results.Count(result => result.Success);
-        StatusMessage = $"Organizing complete. {successCount} of {results.Count} file(s) moved successfully.";
-
-        System.Windows.MessageBox.Show(
-            $"Organizing complete.\n{successCount} of {results.Count} file(s) moved successfully.",
-            "Smart File Organizer",
-            System.Windows.MessageBoxButton.OK,
-            System.Windows.MessageBoxImage.Information);
-
-        OrganizeFilesCommand.NotifyCanExecuteChanged();
-        ClearHistoryCommand.NotifyCanExecuteChanged();
+        catch (Exception)
+        {
+            StatusMessage = "Could not organize files. Some files may be locked or inaccessible.";
+            ShowWarning("Could not organize files. Some files may be locked or inaccessible.");
+        }
     }
 
     private bool CanOrganizeFiles() =>
@@ -145,57 +178,60 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task AddRule()
     {
-        var extensionInput = Microsoft.VisualBasic.Interaction.InputBox(
-            "Enter a file extension (e.g. .pdf or pdf):",
-            "Add Rule",
-            ".pdf");
-
-        if (string.IsNullOrWhiteSpace(extensionInput))
+        try
         {
-            return;
-        }
-
-        var destinationInput = Microsoft.VisualBasic.Interaction.InputBox(
-            "Enter the destination folder name (e.g. Documents):",
-            "Add Rule",
-            "Documents");
-
-        if (string.IsNullOrWhiteSpace(destinationInput))
-        {
-            return;
-        }
-
-        var normalizedExtension = NormalizeExtension(extensionInput);
-        var destinationFolder = destinationInput.Trim();
-
-        if (destinationFolder.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-        {
-            System.Windows.MessageBox.Show(
-                "Destination folder name contains invalid characters.",
+            var extensionInput = Microsoft.VisualBasic.Interaction.InputBox(
+                "Enter a file extension (e.g. .pdf or pdf):",
                 "Add Rule",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Warning);
-            return;
+                ".pdf");
+
+            if (string.IsNullOrWhiteSpace(extensionInput))
+            {
+                return;
+            }
+
+            if (!TryNormalizeExtension(extensionInput, out var normalizedExtension, out var extensionError))
+            {
+                ShowWarning(extensionError, "Add Rule");
+                return;
+            }
+
+            var destinationInput = Microsoft.VisualBasic.Interaction.InputBox(
+                "Enter the destination folder name (e.g. Documents):",
+                "Add Rule",
+                "Documents");
+
+            if (string.IsNullOrWhiteSpace(destinationInput))
+            {
+                return;
+            }
+
+            if (!TryValidateDestinationFolder(destinationInput, out var destinationFolder, out var destinationError))
+            {
+                ShowWarning(destinationError, "Add Rule");
+                return;
+            }
+
+            if (Rules.Any(rule => NormalizeExtension(rule.Extension) == normalizedExtension))
+            {
+                ShowWarning($"A rule for extension '{normalizedExtension}' already exists.", "Duplicate Rule");
+                return;
+            }
+
+            Rules.Add(new OrganizationRule
+            {
+                Extension = normalizedExtension,
+                DestinationFolder = destinationFolder
+            });
+
+            await SaveRulesAsync();
+            StatusMessage = $"Rule added: {normalizedExtension} -> {destinationFolder}";
         }
-
-        if (Rules.Any(rule => NormalizeExtension(rule.Extension) == normalizedExtension))
+        catch (Exception)
         {
-            System.Windows.MessageBox.Show(
-                $"A rule for extension '{normalizedExtension}' already exists.",
-                "Duplicate Rule",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Warning);
-            return;
+            StatusMessage = "Could not save rules. Please try again.";
+            ShowWarning("Could not save rules. Please try again.");
         }
-
-        Rules.Add(new OrganizationRule
-        {
-            Extension = normalizedExtension,
-            DestinationFolder = destinationFolder
-        });
-
-        await SaveRulesAsync();
-        StatusMessage = $"Rule added: {normalizedExtension} -> {destinationFolder}";
     }
 
     [RelayCommand(CanExecute = nameof(CanDeleteRule))]
@@ -206,12 +242,20 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var extension = SelectedRule.Extension;
-        Rules.Remove(SelectedRule);
-        SelectedRule = null;
+        try
+        {
+            var extension = SelectedRule.Extension;
+            Rules.Remove(SelectedRule);
+            SelectedRule = null;
 
-        await SaveRulesAsync();
-        StatusMessage = $"Rule deleted: {extension}";
+            await SaveRulesAsync();
+            StatusMessage = $"Rule deleted: {extension}";
+        }
+        catch (Exception)
+        {
+            StatusMessage = "Could not save rules. Please try again.";
+            ShowWarning("Could not delete the rule. Please try again.");
+        }
     }
 
     private bool CanDeleteRule() => SelectedRule is not null;
@@ -230,10 +274,18 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        await _loggingService.ClearAsync();
-        History.Clear();
-        StatusMessage = "History cleared.";
-        ClearHistoryCommand.NotifyCanExecuteChanged();
+        try
+        {
+            await _loggingService.ClearAsync();
+            History.Clear();
+            StatusMessage = "History cleared.";
+            ClearHistoryCommand.NotifyCanExecuteChanged();
+        }
+        catch (Exception)
+        {
+            StatusMessage = "Could not clear history. Please try again.";
+            ShowWarning("Could not clear history. Please try again.");
+        }
     }
 
     private bool CanClearHistory() => History.Count > 0;
@@ -285,6 +337,11 @@ public partial class MainViewModel : ObservableObject
             Rules.Clear();
             foreach (var rule in rules)
             {
+                if (string.IsNullOrWhiteSpace(rule.Extension) || string.IsNullOrWhiteSpace(rule.DestinationFolder))
+                {
+                    continue;
+                }
+
                 Rules.Add(rule);
             }
 
@@ -304,14 +361,97 @@ public partial class MainViewModel : ObservableObject
         await _ruleService.SaveRulesAsync(Rules);
     }
 
-    private OrganizationRule? FindMatchingRule(string extension)
+    private OrganizationRule? FindMatchingRule(string? extension)
     {
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return null;
+        }
+
         var normalizedExtension = NormalizeExtension(extension);
         return Rules.FirstOrDefault(rule => NormalizeExtension(rule.Extension) == normalizedExtension);
     }
 
-    private static string NormalizeExtension(string extension)
+    private static bool TryNormalizeExtension(
+        string? extensionInput,
+        out string normalizedExtension,
+        out string errorMessage)
     {
+        normalizedExtension = string.Empty;
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(extensionInput))
+        {
+            errorMessage = "Extension cannot be empty.";
+            return false;
+        }
+
+        var trimmed = extensionInput.Trim().ToLowerInvariant();
+
+        if (trimmed.Contains(' ') || trimmed.Contains('*') || trimmed.Contains('?') ||
+            trimmed.Contains('/') || trimmed.Contains('\\'))
+        {
+            errorMessage = "Extension cannot contain spaces, wildcards, or path separators.";
+            return false;
+        }
+
+        normalizedExtension = trimmed.StartsWith('.') ? trimmed : "." + trimmed;
+
+        if (normalizedExtension.Length <= 1)
+        {
+            errorMessage = "Please enter a valid extension such as .pdf or pdf.";
+            return false;
+        }
+
+        var extensionWithoutDot = normalizedExtension[1..];
+        if (string.IsNullOrWhiteSpace(extensionWithoutDot) ||
+            extensionWithoutDot.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            errorMessage = "Extension contains invalid characters.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryValidateDestinationFolder(
+        string? destinationInput,
+        out string destinationFolder,
+        out string errorMessage)
+    {
+        destinationFolder = string.Empty;
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(destinationInput))
+        {
+            errorMessage = "Destination folder name cannot be empty.";
+            return false;
+        }
+
+        destinationFolder = destinationInput.Trim();
+
+        if (destinationFolder.Contains('/') || destinationFolder.Contains('\\'))
+        {
+            errorMessage = "Destination folder must be a simple folder name, not a path.";
+            return false;
+        }
+
+        if (destinationFolder.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            errorMessage = "Destination folder name contains invalid characters.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string NormalizeExtension(string? extension)
+    {
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return string.Empty;
+        }
+
         extension = extension.Trim().ToLowerInvariant();
 
         if (!extension.StartsWith('.'))
@@ -322,24 +462,48 @@ public partial class MainViewModel : ObservableObject
         return extension;
     }
 
+    private static void ShowWarning(string message, string title = "Smart File Organizer")
+    {
+        System.Windows.MessageBox.Show(
+            message,
+            title,
+            System.Windows.MessageBoxButton.OK,
+            System.Windows.MessageBoxImage.Warning);
+    }
+
     private void OnSelectedFolder()
     {
-        using var dialog = new FolderBrowserDialog
+        try
         {
-            Description = "Select a folder to organize",
-            UseDescriptionForTitle = true,
-            ShowNewFolderButton = true
-        };
+            using var dialog = new FolderBrowserDialog
+            {
+                Description = "Select a folder to organize",
+                UseDescriptionForTitle = true,
+                ShowNewFolderButton = true
+            };
 
-        if (!string.IsNullOrWhiteSpace(SelectedFolder) && Directory.Exists(SelectedFolder))
-        {
-            dialog.SelectedPath = SelectedFolder;
+            if (!string.IsNullOrWhiteSpace(SelectedFolder) && Directory.Exists(SelectedFolder))
+            {
+                dialog.SelectedPath = SelectedFolder;
+            }
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                if (string.IsNullOrWhiteSpace(dialog.SelectedPath) || !Directory.Exists(dialog.SelectedPath))
+                {
+                    StatusMessage = "The selected folder is not valid.";
+                    ShowWarning("The selected folder is not valid. Please choose another folder.");
+                    return;
+                }
+
+                SelectedFolder = dialog.SelectedPath;
+                StatusMessage = "Folder selected.";
+            }
         }
-
-        if (dialog.ShowDialog() == DialogResult.OK)
+        catch (Exception)
         {
-            SelectedFolder = dialog.SelectedPath;
-            StatusMessage = "Folder selected.";
+            StatusMessage = "Could not open folder selection.";
+            ShowWarning("Could not open folder selection. Please try again.");
         }
     }
 }
