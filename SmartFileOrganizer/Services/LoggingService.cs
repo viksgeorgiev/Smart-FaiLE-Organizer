@@ -26,7 +26,7 @@ public class LoggingService : ILoggingService
         _entries.AddRange(entries);
     }
 
-    public LogEntry CreateLogEntry(OrganizationResult? result, string? fileName)
+    private LogEntry CreateLogEntry(OrganizationResult? result, string? fileName)
     {
         if (result is null)
         {
@@ -48,14 +48,6 @@ public class LoggingService : ILoggingService
         };
     }
 
-    public async Task<LogEntry> LogMoveAsync(OrganizationResult result, string fileName)
-    {
-        var entry = CreateLogEntry(result, fileName);
-        _entries.Add(entry);
-        await SaveAsync();
-        return entry;
-    }
-
     public async Task LogMovesAsync(IReadOnlyList<FileItem>? files, IReadOnlyList<OrganizationResult>? results)
     {
         if (results is null || results.Count == 0)
@@ -75,7 +67,7 @@ public class LoggingService : ILoggingService
         await SaveAsync();
     }
 
-    public async Task SaveAsync()
+    private async Task SaveAsync()
     {
         AppDataPaths.EnsureAppFolderExists();
         await _storage.SaveAsync(AppDataPaths.LogFilePath, _entries);

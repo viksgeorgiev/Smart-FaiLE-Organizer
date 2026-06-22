@@ -1,11 +1,5 @@
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\.msCoverageSourceRootsMapping_SmartFileOrganizer.Tests
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\CoverletSourceRootsMapping_SmartFileOrganizer.Tests
-D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.csproj.AssemblyReference.cache
-D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.GeneratedMSBuildEditorConfig.editorconfig
-D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.AssemblyInfoInputs.cache
-D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.AssemblyInfo.cs
-D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.csproj.CoreCompileInputs.cache
-D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.sourcelink.json
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\testhost.dll
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\xunit.abstractions.dll
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\SmartFileOrganizer.deps.json
@@ -99,6 +93,12 @@ D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartF
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\zh-Hant\Microsoft.VisualStudio.TestPlatform.Common.resources.dll
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\SmartFileOrganizer.dll
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\bin\Debug\net8.0-windows\SmartFileOrganizer.pdb
+D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.csproj.AssemblyReference.cache
+D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.GeneratedMSBuildEditorConfig.editorconfig
+D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.AssemblyInfoInputs.cache
+D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.AssemblyInfo.cs
+D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.csproj.CoreCompileInputs.cache
+D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.sourcelink.json
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFil.6188DD21.Up2Date
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\SmartFileOrganizer.Tests.dll
 D:\Programming without\AI-Assisted Development\EXAM\Smart FaiLE Organizer\SmartFileOrganizer.Tests\obj\Debug\net8.0-windows\refint\SmartFileOrganizer.Tests.dll
