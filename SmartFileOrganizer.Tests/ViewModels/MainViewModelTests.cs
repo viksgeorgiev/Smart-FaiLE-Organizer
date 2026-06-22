@@ -17,8 +17,13 @@ public class MainViewModelTests
             .Returns(Task.CompletedTask);
 
         var dialogService = new Mock<IRuleDialogService>();
-        dialogService.Setup(service => service.TryGetRuleInput(out It.Ref<string>.IsAny, out It.Ref<string>.IsAny))
-            .Returns((out string extension, out string destination) =>
+        dialogService.Setup(service => service.TryGetRuleInput(
+                out It.Ref<string>.IsAny,
+                out It.Ref<string>.IsAny,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>()))
+            .Returns((out string extension, out string destination, string? _, string? __, string ___) =>
             {
                 extension = ".PDF";
                 destination = "Documents";
@@ -56,6 +61,157 @@ public class MainViewModelTests
         Assert.Empty(viewModel.Rules);
         Assert.Null(viewModel.SelectedRule);
         ruleService.Verify(service => service.SaveRulesAsync(viewModel.Rules), Times.Once);
+    }
+
+    [Fact]
+    public async Task EditRuleCommand_UpdatesRuleAndSaves()
+    {
+        // Arrange
+        var ruleService = new Mock<IRuleService>();
+        ruleService.Setup(service => service.SaveRulesAsync(It.IsAny<IEnumerable<OrganizationRule>>()))
+            .Returns(Task.CompletedTask);
+
+        var dialogService = new Mock<IRuleDialogService>();
+        dialogService.Setup(service => service.TryGetRuleInput(
+                out It.Ref<string>.IsAny,
+                out It.Ref<string>.IsAny,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>()))
+            .Returns((out string extension, out string destination, string? _, string? __, string ___) =>
+            {
+                extension = ".md";
+                destination = "Markdown";
+                return true;
+            });
+
+        var viewModel = CreateViewModel(ruleService: ruleService.Object, dialogService: dialogService.Object);
+        var rule = new OrganizationRule { Extension = ".txt", DestinationFolder = "Text" };
+        viewModel.Rules.Add(rule);
+        viewModel.SelectedRule = rule;
+
+        // Act
+        await viewModel.EditRuleCommand.ExecuteAsync(null);
+
+        // Assert
+        var updatedRule = Assert.Single(viewModel.Rules);
+        Assert.Equal(".md", updatedRule.Extension);
+        Assert.Equal("Markdown", updatedRule.DestinationFolder);
+        Assert.Same(updatedRule, viewModel.SelectedRule);
+        ruleService.Verify(service => service.SaveRulesAsync(viewModel.Rules), Times.Once);
+    }
+
+    [Fact]
+    public async Task EditRuleCommand_AllowsUpdatingDestinationForSameExtension()
+    {
+        // Arrange
+        var ruleService = new Mock<IRuleService>();
+        ruleService.Setup(service => service.SaveRulesAsync(It.IsAny<IEnumerable<OrganizationRule>>()))
+            .Returns(Task.CompletedTask);
+
+        var dialogService = new Mock<IRuleDialogService>();
+        dialogService.Setup(service => service.TryGetRuleInput(
+                out It.Ref<string>.IsAny,
+                out It.Ref<string>.IsAny,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>()))
+            .Returns((out string extension, out string destination, string? _, string? __, string ___) =>
+            {
+                extension = ".pdf";
+                destination = "PDF Files";
+                return true;
+            });
+
+        var viewModel = CreateViewModel(ruleService: ruleService.Object, dialogService: dialogService.Object);
+        var rule = new OrganizationRule { Extension = ".pdf", DestinationFolder = "Documents" };
+        viewModel.Rules.Add(rule);
+        viewModel.SelectedRule = rule;
+
+        // Act
+        await viewModel.EditRuleCommand.ExecuteAsync(null);
+
+        // Assert
+        var updatedRule = Assert.Single(viewModel.Rules);
+        Assert.Equal(".pdf", updatedRule.Extension);
+        Assert.Equal("PDF Files", updatedRule.DestinationFolder);
+        ruleService.Verify(service => service.SaveRulesAsync(viewModel.Rules), Times.Once);
+    }
+
+    [Fact]
+    public async Task EditRuleCommand_DoesNotSave_WhenExtensionConflictsWithAnotherRule()
+    {
+        // Arrange
+        var ruleService = new Mock<IRuleService>();
+        ruleService.Setup(service => service.SaveRulesAsync(It.IsAny<IEnumerable<OrganizationRule>>()))
+            .Returns(Task.CompletedTask);
+
+        var dialogService = new Mock<IRuleDialogService>();
+        dialogService.Setup(service => service.TryGetRuleInput(
+                out It.Ref<string>.IsAny,
+                out It.Ref<string>.IsAny,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>()))
+            .Returns((out string extension, out string destination, string? _, string? __, string ___) =>
+            {
+                extension = ".pdf";
+                destination = "Documents";
+                return true;
+            });
+
+        var viewModel = CreateViewModel(ruleService: ruleService.Object, dialogService: dialogService.Object);
+        var txtRule = new OrganizationRule { Extension = ".txt", DestinationFolder = "Text" };
+        var pdfRule = new OrganizationRule { Extension = ".pdf", DestinationFolder = "Documents" };
+        viewModel.Rules.Add(txtRule);
+        viewModel.Rules.Add(pdfRule);
+        viewModel.SelectedRule = txtRule;
+
+        // Act
+        await viewModel.EditRuleCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(2, viewModel.Rules.Count);
+        Assert.Equal(".txt", viewModel.Rules[0].Extension);
+        Assert.Equal("Text", viewModel.Rules[0].DestinationFolder);
+        ruleService.Verify(service => service.SaveRulesAsync(It.IsAny<IEnumerable<OrganizationRule>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EditRuleCommand_DoesNothing_WhenDialogCancelled()
+    {
+        // Arrange
+        var ruleService = new Mock<IRuleService>();
+        ruleService.Setup(service => service.SaveRulesAsync(It.IsAny<IEnumerable<OrganizationRule>>()))
+            .Returns(Task.CompletedTask);
+
+        var dialogService = new Mock<IRuleDialogService>();
+        dialogService.Setup(service => service.TryGetRuleInput(
+                out It.Ref<string>.IsAny,
+                out It.Ref<string>.IsAny,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>()))
+            .Returns((out string extension, out string destination, string? _, string? __, string ___) =>
+            {
+                extension = string.Empty;
+                destination = string.Empty;
+                return false;
+            });
+
+        var viewModel = CreateViewModel(ruleService: ruleService.Object, dialogService: dialogService.Object);
+        var rule = new OrganizationRule { Extension = ".txt", DestinationFolder = "Text" };
+        viewModel.Rules.Add(rule);
+        viewModel.SelectedRule = rule;
+
+        // Act
+        await viewModel.EditRuleCommand.ExecuteAsync(null);
+
+        // Assert
+        var unchangedRule = Assert.Single(viewModel.Rules);
+        Assert.Equal(".txt", unchangedRule.Extension);
+        Assert.Equal("Text", unchangedRule.DestinationFolder);
+        ruleService.Verify(service => service.SaveRulesAsync(It.IsAny<IEnumerable<OrganizationRule>>()), Times.Never);
     }
 
     [Fact]

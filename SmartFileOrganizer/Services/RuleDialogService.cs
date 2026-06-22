@@ -2,12 +2,17 @@ namespace SmartFileOrganizer.Services;
 
 public class RuleDialogService : IRuleDialogService
 {
-    public bool TryGetRuleInput(out string extension, out string destinationFolder)
+    public bool TryGetRuleInput(
+        out string extension,
+        out string destinationFolder,
+        string? defaultExtension = null,
+        string? defaultDestination = null,
+        string title = "Add Rule")
     {
         extension = Microsoft.VisualBasic.Interaction.InputBox(
             "Enter a file extension (e.g. .pdf or pdf):",
-            "Add Rule",
-            ".pdf");
+            title,
+            defaultExtension ?? ".pdf");
 
         if (string.IsNullOrWhiteSpace(extension))
         {
@@ -17,8 +22,8 @@ public class RuleDialogService : IRuleDialogService
 
         destinationFolder = Microsoft.VisualBasic.Interaction.InputBox(
             "Enter the destination folder name (e.g. Documents):",
-            "Add Rule",
-            "Documents");
+            title,
+            defaultDestination ?? "Documents");
 
         return !string.IsNullOrWhiteSpace(destinationFolder);
     }

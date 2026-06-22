@@ -27,6 +27,7 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteRuleCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EditRuleCommand))]
     private OrganizationRule? _selectedRule;
 
     [ObservableProperty]
@@ -270,6 +271,73 @@ public partial class MainViewModel : ObservableObject
             ShowWarning("Could not save rules. Please try again.");
         }
     }
+
+    [RelayCommand(CanExecute = nameof(CanEditRule))]
+    private async Task EditRule()
+    {
+        if (SelectedRule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var ruleToEdit = SelectedRule;
+
+            if (!_ruleDialogService.TryGetRuleInput(
+                    out var extensionInput,
+                    out var destinationInput,
+                    defaultExtension: ruleToEdit.Extension,
+                    defaultDestination: ruleToEdit.DestinationFolder,
+                    title: "Edit Rule"))
+            {
+                return;
+            }
+
+            if (!TryNormalizeExtension(extensionInput, out var normalizedExtension, out var extensionError))
+            {
+                ShowWarning(extensionError, "Edit Rule");
+                return;
+            }
+
+            if (!TryValidateDestinationFolder(destinationInput, out var destinationFolder, out var destinationError))
+            {
+                ShowWarning(destinationError, "Edit Rule");
+                return;
+            }
+
+            if (Rules.Any(rule => rule != ruleToEdit && NormalizeExtension(rule.Extension) == normalizedExtension))
+            {
+                ShowWarning($"A rule for extension '{normalizedExtension}' already exists.", "Duplicate Rule");
+                return;
+            }
+
+            var index = Rules.IndexOf(ruleToEdit);
+            if (index < 0)
+            {
+                return;
+            }
+
+            var updatedRule = new OrganizationRule
+            {
+                Extension = normalizedExtension,
+                DestinationFolder = destinationFolder
+            };
+
+            Rules[index] = updatedRule;
+            SelectedRule = updatedRule;
+
+            await SaveRulesAsync();
+            StatusMessage = $"Rule updated: {normalizedExtension} -> {destinationFolder}";
+        }
+        catch (Exception)
+        {
+            StatusMessage = "Could not save rules. Please try again.";
+            ShowWarning("Could not save rules. Please try again.");
+        }
+    }
+
+    private bool CanEditRule() => SelectedRule is not null;
 
     [RelayCommand(CanExecute = nameof(CanDeleteRule))]
     private async Task DeleteRule()

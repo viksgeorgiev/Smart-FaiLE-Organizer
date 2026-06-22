@@ -86,6 +86,11 @@
                                     Command="{Binding AddRuleCommand}"
                                     Padding="12,6"
                                     Margin="0,0,8,0" />
+                            <Button Content="Edit Rule"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding EditRuleCommand}"
+                                    Padding="12,6"
+                                    Margin="0,0,8,0" />
                             <Button Content="Delete Rule"
                                     Style="{StaticResource SecondaryButtonStyle}"
                                     Command="{Binding DeleteRuleCommand}"
