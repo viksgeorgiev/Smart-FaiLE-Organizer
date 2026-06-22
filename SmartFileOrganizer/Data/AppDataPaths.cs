@@ -12,6 +12,8 @@ public static class AppDataPaths
 
     public static string HistoryFilePath => Path.Combine(AppFolder, "history.json");
 
+    public static string LogFilePath => Path.Combine(AppFolder, "logs.json");
+
     public static void EnsureAppFolderExists()
     {
         Directory.CreateDirectory(AppFolder);
