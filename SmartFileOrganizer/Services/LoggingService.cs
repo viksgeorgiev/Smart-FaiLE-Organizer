@@ -5,7 +5,7 @@ using SmartFileOrganizer.Models;
 
 namespace SmartFileOrganizer.Services;
 
-public class LoggingService
+public class LoggingService : ILoggingService
 {
     private readonly JsonStorageService _storage;
     private readonly List<LogEntry> _entries = [];

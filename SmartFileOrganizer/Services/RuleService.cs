@@ -3,7 +3,7 @@ using SmartFileOrganizer.Models;
 
 namespace SmartFileOrganizer.Services;
 
-public class RuleService
+public class RuleService : IRuleService
 {
     private readonly JsonStorageService _storage;
 

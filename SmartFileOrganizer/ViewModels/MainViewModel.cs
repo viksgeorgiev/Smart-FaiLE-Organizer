@@ -10,11 +10,12 @@ namespace SmartFileOrganizer.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly JsonStorageService _jsonStorageService;
-    private readonly RuleService _ruleService;
-    private readonly FileScannerService _fileScannerService;
-    private readonly FileOrganizerService _fileOrganizerService;
-    private readonly LoggingService _loggingService;
+    private readonly IFileScannerService _fileScannerService;
+    private readonly IFileOrganizerService _fileOrganizerService;
+    private readonly IRuleService _ruleService;
+    private readonly ILoggingService _loggingService;
+    private readonly IRuleDialogService _ruleDialogService;
+    private readonly bool _suppressDialogs;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ScanFolderCommand))]
@@ -34,14 +35,47 @@ public partial class MainViewModel : ObservableObject
     private bool _isScanning;
 
     public MainViewModel()
+        : this(CreateDefaultScanner(), CreateDefaultOrganizer(), CreateDefaultRuleService(), CreateDefaultLoggingService(), new RuleDialogService(), loadOnStartup: true, suppressDialogs: false)
     {
-        _jsonStorageService = new JsonStorageService();
-        _ruleService = new RuleService(_jsonStorageService);
-        _fileScannerService = new FileScannerService();
-        _fileOrganizerService = new FileOrganizerService();
-        _loggingService = new LoggingService(_jsonStorageService);
+    }
+
+    public MainViewModel(
+        IFileScannerService fileScannerService,
+        IFileOrganizerService fileOrganizerService,
+        IRuleService ruleService,
+        ILoggingService loggingService,
+        IRuleDialogService ruleDialogService,
+        bool loadOnStartup = false,
+        bool suppressDialogs = true)
+    {
+        _fileScannerService = fileScannerService;
+        _fileOrganizerService = fileOrganizerService;
+        _ruleService = ruleService;
+        _loggingService = loggingService;
+        _ruleDialogService = ruleDialogService;
+        _suppressDialogs = suppressDialogs;
         SelectedFolderCommand = new RelayCommand(OnSelectedFolder);
-        _ = InitializeAsync();
+
+        if (loadOnStartup)
+        {
+            _ = InitializeAsync();
+        }
+    }
+
+    private static FileScannerService CreateDefaultScanner() => new();
+
+    private static FileOrganizerService CreateDefaultOrganizer() => new();
+
+    private static RuleService CreateDefaultRuleService()
+    {
+        var storage = new JsonStorageService();
+        return new RuleService(storage);
+    }
+
+    private static LoggingService CreateDefaultLoggingService()
+    {
+        var storage = new JsonStorageService();
+        return new LoggingService(storage);
     }
 
     public ObservableCollection<OrganizationRule> Rules { get; } = new();
@@ -169,11 +203,14 @@ public partial class MainViewModel : ObservableObject
             var successCount = results.Count(result => result.Success);
             StatusMessage = $"Organizing complete. {successCount} of {results.Count} file(s) moved successfully.";
 
-            System.Windows.MessageBox.Show(
-                $"Organizing complete.\n{successCount} of {results.Count} file(s) moved successfully.",
-                "Smart File Organizer",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Information);
+            if (!_suppressDialogs)
+            {
+                System.Windows.MessageBox.Show(
+                    $"Organizing complete.\n{successCount} of {results.Count} file(s) moved successfully.",
+                    "Smart File Organizer",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            }
 
             OrganizeFilesCommand.NotifyCanExecuteChanged();
             ClearHistoryCommand.NotifyCanExecuteChanged();
@@ -195,12 +232,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var extensionInput = Microsoft.VisualBasic.Interaction.InputBox(
-                "Enter a file extension (e.g. .pdf or pdf):",
-                "Add Rule",
-                ".pdf");
-
-            if (string.IsNullOrWhiteSpace(extensionInput))
+            if (!_ruleDialogService.TryGetRuleInput(out var extensionInput, out var destinationInput))
             {
                 return;
             }
@@ -208,16 +240,6 @@ public partial class MainViewModel : ObservableObject
             if (!TryNormalizeExtension(extensionInput, out var normalizedExtension, out var extensionError))
             {
                 ShowWarning(extensionError, "Add Rule");
-                return;
-            }
-
-            var destinationInput = Microsoft.VisualBasic.Interaction.InputBox(
-                "Enter the destination folder name (e.g. Documents):",
-                "Add Rule",
-                "Documents");
-
-            if (string.IsNullOrWhiteSpace(destinationInput))
-            {
                 return;
             }
 
@@ -477,8 +499,13 @@ public partial class MainViewModel : ObservableObject
         return extension;
     }
 
-    private static void ShowWarning(string message, string title = "Smart File Organizer")
+    private void ShowWarning(string message, string title = "Smart File Organizer")
     {
+        if (_suppressDialogs)
+        {
+            return;
+        }
+
         System.Windows.MessageBox.Show(
             message,
             title,

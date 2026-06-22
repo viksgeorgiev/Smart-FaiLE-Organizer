@@ -4,7 +4,7 @@ using SmartFileOrganizer.Models;
 
 namespace SmartFileOrganizer.Services;
 
-public class FileOrganizerService
+public class FileOrganizerService : IFileOrganizerService
 {
     public List<OrganizationResult> Organize(
         IReadOnlyList<FileItem>? files,

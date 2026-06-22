@@ -3,7 +3,7 @@ using SmartFileOrganizer.Models;
 
 namespace SmartFileOrganizer.Services;
 
-public class FileScannerService
+public class FileScannerService : IFileScannerService
 {
     public List<FileItem> Scan(string? folderPath)
     {
