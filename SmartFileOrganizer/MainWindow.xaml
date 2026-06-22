@@ -9,6 +9,7 @@
         Width="1100"
         MinHeight="600"
         MinWidth="900"
+        Icon="Assets/AppIcon.ico"
         Background="{StaticResource BackgroundBrush}"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="16">
