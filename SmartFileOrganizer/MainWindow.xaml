@@ -65,13 +65,28 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0"
-                               Text="Organization Rules"
-                               Style="{StaticResource SectionHeaderStyle}" />
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="Organization Rules"
+                                   Style="{StaticResource SectionHeaderStyle}"
+                                   VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Content="Add Rule"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding AddRuleCommand}"
+                                    Padding="12,6"
+                                    Margin="0,0,8,0" />
+                            <Button Content="Delete Rule"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding DeleteRuleCommand}"
+                                    Padding="12,6" />
+                        </StackPanel>
+                    </Grid>
 
                     <DataGrid Grid.Row="1"
                               Style="{StaticResource ModernDataGridStyle}"
-                              ItemsSource="{Binding Rules}">
+                              ItemsSource="{Binding Rules}"
+                              SelectedItem="{Binding SelectedRule}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Extension"
                                                 Binding="{Binding Extension}"
