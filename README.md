@@ -1,4 +1,4 @@
-# Smart File Organizer
+# Smart FaiLE Organizer
 
 ## Project Overview
 
