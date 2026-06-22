@@ -28,6 +28,11 @@ public partial class MainViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(DeleteRuleCommand))]
     private OrganizationRule? _selectedRule;
 
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ScanFolderCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OrganizeFilesCommand))]
+    private bool _isScanning;
+
     public MainViewModel()
     {
         _jsonStorageService = new JsonStorageService();
@@ -57,6 +62,7 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
+            IsScanning = true;
             StatusMessage = "Scanning folder...";
 
             var scannedFiles = await Task.Run(() => _fileScannerService.Scan(SelectedFolder));
@@ -87,22 +93,29 @@ public partial class MainViewModel : ObservableObject
 
             var matchedCount = Files.Count(file => file.Status == "Ready");
             StatusMessage = $"Found {Files.Count} file(s). {matchedCount} matched by rules.";
-            OrganizeFilesCommand.NotifyCanExecuteChanged();
         }
         catch (Exception)
         {
             StatusMessage = "Could not scan this folder. Please check permissions.";
             ShowWarning("Could not scan this folder. Please check permissions and try again.");
         }
+        finally
+        {
+            IsScanning = false;
+            OrganizeFilesCommand.NotifyCanExecuteChanged();
+        }
     }
 
-    private bool CanScanFolder() =>
+    private bool HasValidSelectedFolder() =>
         !string.IsNullOrWhiteSpace(SelectedFolder) && Directory.Exists(SelectedFolder);
+
+    private bool CanScanFolder() =>
+        !IsScanning && HasValidSelectedFolder();
 
     [RelayCommand(CanExecute = nameof(CanOrganizeFiles))]
     private async Task OrganizeFiles()
     {
-        if (!CanScanFolder())
+        if (!HasValidSelectedFolder())
         {
             StatusMessage = "Select a valid folder first.";
             ShowWarning("Please select a valid folder before organizing files.");
@@ -173,7 +186,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     private bool CanOrganizeFiles() =>
-        CanScanFolder() && Files.Any(file => file.Status == "Ready");
+        !IsScanning &&
+        HasValidSelectedFolder() &&
+        Files.Any(file => file.Status == "Ready");
 
     [RelayCommand]
     private async Task AddRule()

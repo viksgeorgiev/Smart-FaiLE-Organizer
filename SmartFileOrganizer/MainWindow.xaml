@@ -12,6 +12,9 @@
         Icon="Assets/AppIcon.ico"
         Background="{StaticResource BackgroundBrush}"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -113,9 +116,51 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0"
-                               Text="Files Preview"
-                               Style="{StaticResource SectionHeaderStyle}" />
+                    <StackPanel Grid.Row="0"
+                                Orientation="Horizontal"
+                                Margin="0,0,0,8">
+                        <TextBlock Text="Files Preview"
+                                   Style="{StaticResource SectionHeaderStyle}"
+                                   VerticalAlignment="Center"
+                                   Margin="0" />
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="12,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}">
+                            <Ellipse Width="14"
+                                     Height="14"
+                                     Stroke="{StaticResource PrimaryBrush}"
+                                     StrokeThickness="2"
+                                     StrokeDashArray="3 2"
+                                     RenderTransformOrigin="0.5,0.5">
+                                <Ellipse.RenderTransform>
+                                    <RotateTransform Angle="0" />
+                                </Ellipse.RenderTransform>
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsScanning}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever">
+                                                            <DoubleAnimation
+                                                                Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                From="0"
+                                                                To="360"
+                                                                Duration="0:0:0.8" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="Scanning..."
+                                       Style="{StaticResource StatusTextStyle}"
+                                       Margin="8,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
 
                     <DataGrid Grid.Row="1"
                               Style="{StaticResource ModernDataGridStyle}"
