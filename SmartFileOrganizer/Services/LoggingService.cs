@@ -64,4 +64,10 @@ public class LoggingService
         AppDataPaths.EnsureAppFolderExists();
         await _storage.SaveAsync(AppDataPaths.LogFilePath, _entries);
     }
+
+    public async Task ClearAsync()
+    {
+        _entries.Clear();
+        await SaveAsync();
+    }
 }

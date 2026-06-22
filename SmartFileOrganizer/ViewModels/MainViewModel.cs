@@ -136,6 +136,7 @@ public partial class MainViewModel : ObservableObject
             System.Windows.MessageBoxImage.Information);
 
         OrganizeFilesCommand.NotifyCanExecuteChanged();
+        ClearHistoryCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanOrganizeFiles() =>
@@ -215,6 +216,28 @@ public partial class MainViewModel : ObservableObject
 
     private bool CanDeleteRule() => SelectedRule is not null;
 
+    [RelayCommand(CanExecute = nameof(CanClearHistory))]
+    private async Task ClearHistory()
+    {
+        var confirmation = System.Windows.MessageBox.Show(
+            "Clear all history? This cannot be undone.",
+            "Clear History",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (confirmation != System.Windows.MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        await _loggingService.ClearAsync();
+        History.Clear();
+        StatusMessage = "History cleared.";
+        ClearHistoryCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanClearHistory() => History.Count > 0;
+
     private async Task InitializeAsync()
     {
         await LoadRulesAsync();
@@ -232,6 +255,8 @@ public partial class MainViewModel : ObservableObject
             {
                 History.Add(ToHistoryEntry(entry));
             }
+
+            ClearHistoryCommand.NotifyCanExecuteChanged();
         }
         catch (Exception)
         {

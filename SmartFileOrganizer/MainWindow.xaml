@@ -163,9 +163,16 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0"
-                           Text="History"
-                           Style="{StaticResource SectionHeaderStyle}" />
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <TextBlock Text="History"
+                               Style="{StaticResource SectionHeaderStyle}"
+                               VerticalAlignment="Center" />
+                    <Button Content="Clear History"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding ClearHistoryCommand}"
+                            HorizontalAlignment="Right"
+                            Padding="12,6" />
+                </Grid>
 
                 <DataGrid Grid.Row="1"
                           Style="{StaticResource ModernDataGridStyle}"
