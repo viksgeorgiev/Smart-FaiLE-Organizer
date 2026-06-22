@@ -88,14 +88,6 @@ dotnet test .\SmartFileOrganizer.Tests\SmartFileOrganizer.Tests.csproj
 
 Rules and history are saved locally, so they remain available the next time the application starts.
 
-## Screenshots Section
-
-Add screenshots of the application here.
-
-```markdown
-![Main Window](docs/screenshots/main-window.png)
-![Rules and Preview](docs/screenshots/rules-preview.png)
-```
 
 ## Future Improvements
 
