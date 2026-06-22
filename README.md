@@ -53,7 +53,7 @@ The service layer uses small interfaces to keep the ViewModel testable without r
 ### Clone the Repository
 
 ```powershell
-git clone <GITHUB_REPOSITORY_LINK>
+git clone https://github.com/viksgeorgiev/Smart-FaiLE-Organizer
 cd "Smart FaiLE Organizer"
 ```
 
@@ -109,4 +109,4 @@ Add screenshots of the application here.
 
 ## GitHub Repository Link Placeholder
 
-Repository: `<GITHUB_REPOSITORY_LINK>`
+Repository: https://github.com/viksgeorgiev/Smart-FaiLE-Organizer
