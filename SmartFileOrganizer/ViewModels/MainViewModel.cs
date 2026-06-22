@@ -11,8 +11,10 @@ namespace SmartFileOrganizer.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly RuleService _ruleService;
+    private readonly FileScannerService _fileScannerService;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ScanFolderCommand))]
     private string _selectedFolder = string.Empty;
 
     [ObservableProperty]
@@ -25,6 +27,7 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         _ruleService = new RuleService(new JsonStorageService());
+        _fileScannerService = new FileScannerService();
         SelectedFolderCommand = new RelayCommand(OnSelectedFolder);
         _ = LoadRulesAsync();
     }
@@ -35,11 +38,44 @@ public partial class MainViewModel : ObservableObject
 
     public IRelayCommand SelectedFolderCommand { get; }
 
-    [RelayCommand]
-    private void ScanFolder()
+    [RelayCommand(CanExecute = nameof(CanScanFolder))]
+    private async Task ScanFolder()
     {
-        // TODO: implement folder scanning
+        if (!CanScanFolder())
+        {
+            StatusMessage = "Select a valid folder first.";
+            return;
+        }
+
+        StatusMessage = "Scanning folder...";
+
+        var scannedFiles = await Task.Run(() => _fileScannerService.Scan(SelectedFolder));
+
+        Files.Clear();
+
+        foreach (var file in scannedFiles)
+        {
+            var rule = FindMatchingRule(file.Extension);
+            var destinationFolder = rule?.DestinationFolder ?? string.Empty;
+
+            Files.Add(new PreviewItem
+            {
+                FileName = file.Name,
+                SourcePath = file.FullPath,
+                DestinationFolder = destinationFolder,
+                DestinationPath = rule is not null
+                    ? Path.Combine(SelectedFolder, destinationFolder, file.Name)
+                    : string.Empty,
+                Status = rule is not null ? "Ready" : "No Rule"
+            });
+        }
+
+        var matchedCount = Files.Count(file => file.Status == "Ready");
+        StatusMessage = $"Found {Files.Count} file(s). {matchedCount} matched by rules.";
     }
+
+    private bool CanScanFolder() =>
+        !string.IsNullOrWhiteSpace(SelectedFolder) && Directory.Exists(SelectedFolder);
 
     [RelayCommand]
     private void OrganizeFiles()
@@ -147,6 +183,12 @@ public partial class MainViewModel : ObservableObject
     private async Task SaveRulesAsync()
     {
         await _ruleService.SaveRulesAsync(Rules);
+    }
+
+    private OrganizationRule? FindMatchingRule(string extension)
+    {
+        var normalizedExtension = NormalizeExtension(extension);
+        return Rules.FirstOrDefault(rule => NormalizeExtension(rule.Extension) == normalizedExtension);
     }
 
     private static string NormalizeExtension(string extension)
