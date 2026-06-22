@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartFileOrganizer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+53932cca8fb971c23992d1471e9be37c5add2891")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c502b2cb366c2efd0489bb39d0fbb71c30499164")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartFileOrganizer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartFileOrganizer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
